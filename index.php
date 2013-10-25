@@ -37,7 +37,7 @@ function espresso_custom_template_grid(){
 	global $org_options, $this_event_id, $events, $ee_attributes;
 
 		//Load the css file
-		wp_register_style( 'espresso_custom_template_grid', ESPRESSO_CUSTOM_DISPLAY_PLUGINPATH."/templates/grid/style.css" );
+		wp_register_style( 'espresso_custom_template_grid', WP_PLUGIN_URL. "/".plugin_basename(dirname(__FILE__)) .'/style.css');
 		wp_enqueue_style( 'espresso_custom_template_grid');
 		$columnwidth = '';
 
@@ -56,7 +56,9 @@ function espresso_custom_template_grid(){
 			$event_meta			= unserialize($event->event_meta);
 			$externalURL 		= $event->externalURL;
 			$registration_url 	= !empty($externalURL) ? $externalURL : espresso_reg_url($event->id);
-			$event_status 		= __('Register Now!', 'event_espresso');
+			$event_status 		= event_espresso_get_status($event->id);
+			$open_spots			= get_number_of_attendees_reg_limit($event->id, 'number_available_spaces');
+			$link_text 			= __('Register Now!', 'event_espresso');
 
 			//use the wordpress date format.
 			$date_format = get_option('date_format');
@@ -65,18 +67,20 @@ function espresso_custom_template_grid(){
 			$att_num = get_number_of_attendees_reg_limit($event->id, 'num_attendees');
 			//Uncomment the below line to hide an event if it is maxed out
 			//if ( $att_num >= $event->reg_limit  ) { continue; $live_button = 'Closed';  }
-			if ( $att_num >= $event->reg_limit ) { $event_status = __('Sold Out', 'event_espresso');  } elseif ( event_espresso_get_status($event->id) == 'NOT_ACTIVE' ) { $event_status = 'Closed';}
-
-			//waitlist
-			if ($event->allow_overflow == 'Y' && event_espresso_get_status($event->id) == 'ACTIVE'){
-				$registration_url 	= espresso_reg_url($event->overflow_event_id);
-				$event_status 		= __('Sold Out - Join Waiting List', 'event_espresso');
+			if($open_spots < 1 && $event->allow_overflow == 'N') {
+				$link_text = __('Sold Out', 'event_espresso');
+			} else if ($open_spots < 1 && $event->allow_overflow == 'Y'){
+				$link_text = !empty($event->overflow_event_id) ? __('Join Wait List', 'event_espresso') : __('Sold Out', 'event_espresso');
+			}
+			
+			if ( $event_status == 'NOT_ACTIVE' ) {
+				$link_text = __('Closed', 'event_espresso');
 			}
 
 			//Gets the member options, if the Members add-on is installed.
 			$member_options = get_option('events_member_settings');
 
-			if(!isset($default_image)) { $default_image = ESPRESSO_CUSTOM_DISPLAY_PLUGINPATH . 'templates/grid/default.jpg';}
+			if(!isset($default_image)) { $default_image = WP_PLUGIN_URL. "/".plugin_basename(dirname(__FILE__)) .'/default.jpg';}
 			$image = isset($event_meta['event_thumbnail_url']) ? $event_meta['event_thumbnail_url'] : $default_image;
 
 			//uncomment this and comment out the above line if you want to use the Organisation logo
@@ -92,18 +96,21 @@ function espresso_custom_template_grid(){
                         <h2>
                         <span>
 
-                            <?php if ( function_exists('espresso_members_installed') && espresso_members_installed() == true && !is_user_logged_in() && ($member_only == 'Y' || $member_options['member_only_all'] == 'Y') ) {
-                            echo __('Member Only', 'event_espresso'); } else { ?>
-
-                            <?php echo stripslashes($event->event_name); ?><br />
-
-                            <?php if($event->event_cost === "0.00") { echo __('FREE', 'event_espresso'); } else { echo $org_options['currency_symbol'] . $event->event_cost;  } ?><br />
-
-                            <?php echo date($date_format, strtotime($event->start_date)) ?><br />
-
-                            <?php echo $event_status; ?>
-
-                            <?php 			}// close is_user_logged_in	 ?>
+                            <?php 
+							if ( function_exists('espresso_members_installed') && espresso_members_installed() == true && !is_user_logged_in() && ($member_only == 'Y' || $member_options['member_only_all'] == 'Y') ) {
+                            	echo __('Member Only', 'event_espresso');
+							}else {
+								echo stripslashes($event->event_name).'<br />';
+								if($event->event_cost === "0.00") { 
+									echo __('FREE', 'event_espresso');
+								}else { 
+									echo $org_options['currency_symbol'] . $event->event_cost;
+								}
+								echo '<br />';
+								echo date($date_format, strtotime($event->start_date)),'<br />';
+								echo $link_text; 
+							}
+							?>
 
                         </span>
                         </h2>
