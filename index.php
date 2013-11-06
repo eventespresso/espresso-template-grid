@@ -41,6 +41,8 @@ function espresso_custom_template_grid(){
 		wp_enqueue_style( 'espresso_custom_template_grid');
 		$columnwidth = '';
 
+	if(isset($ee_attributes['default_image'])) { $default_image = $ee_attributes['default_image']; }
+
 
 	//Uncomment to view the data being passed to this file
 	//echo '<h4>$events : <pre>' . print_r($events,true) . '</pre> <span style="font-size:10px;font-weight:normal;">' . __FILE__ . '<br />line no: ' . __LINE__ . '</span></h4>';
@@ -76,7 +78,7 @@ function espresso_custom_template_grid(){
 			} else if ($open_spots < 1 && $event->allow_overflow == 'Y'){
 				$link_text = !empty($event->overflow_event_id) ? __('Join Wait List', 'event_espresso') : __('Sold Out', 'event_espresso');
 			}
-			
+
 			if ( $event_status == 'NOT_ACTIVE' ) {
 				$link_text = __('Closed', 'event_espresso');
 			}
@@ -84,11 +86,13 @@ function espresso_custom_template_grid(){
 			//Gets the member options, if the Members add-on is installed.
 			$member_options = get_option('events_member_settings');
 
-			if(!isset($default_image)) { $default_image = WP_PLUGIN_URL. "/".plugin_basename(dirname(__FILE__)) .'/default.jpg';}
+			if(!isset($default_image) || $default_image == '') { $default_image = WP_PLUGIN_URL. "/".plugin_basename(dirname(__FILE__)) .'/default.jpg';}
 			$image = isset($event_meta['event_thumbnail_url']) ? $event_meta['event_thumbnail_url'] : $default_image;
 
+			//if(isset($user_default_image) && !isset($event_meta['event_thumbnail_url'])) { $image = $user_default_image; }
+
 			//uncomment this and comment out the above line if you want to use the Organisation logo
-			//if($image == '') { $image = $org_options['default_logo_url']; }
+			//$image = $org_options['default_logo_url'];
 
 				?>
 
@@ -100,19 +104,19 @@ function espresso_custom_template_grid(){
                         <h2>
                         <span>
 
-                            <?php 
+                            <?php
 							if ( function_exists('espresso_members_installed') && espresso_members_installed() == true && !is_user_logged_in() && ($member_only == 'Y' || $member_options['member_only_all'] == 'Y') ) {
                             	echo __('Member Only', 'event_espresso');
 							}else {
 								echo stripslashes($event->event_name).'<br />';
-								if($event->event_cost === "0.00") { 
+								if($event->event_cost === "0.00") {
 									echo __('FREE', 'event_espresso');
-								}else { 
+								}else {
 									echo $org_options['currency_symbol'] . $event->event_cost;
 								}
 								echo '<br />';
 								echo date($date_format, strtotime($event->start_date)),'<br />';
-								echo $link_text; 
+								echo $link_text;
 							}
 							?>
 
@@ -137,8 +141,8 @@ function espresso_template_grid_load_pue_update() {
 	global $org_options, $espresso_check_for_updates;
 	if ( $espresso_check_for_updates == false )
 		return;
-		
-	if (file_exists(EVENT_ESPRESSO_PLUGINFULLPATH . 'class/pue/pue-client.php')) { //include the file 
+
+	if (file_exists(EVENT_ESPRESSO_PLUGINFULLPATH . 'class/pue/pue-client.php')) { //include the file
 		require(EVENT_ESPRESSO_PLUGINFULLPATH . 'class/pue/pue-client.php' );
 		$api_key = $org_options['site_license_key'];
 		$host_server_url = 'http://eventespresso.com';
